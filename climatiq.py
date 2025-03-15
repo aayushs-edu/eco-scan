@@ -11,6 +11,7 @@ AUTH_HEADERS = {
     "Content-Type": "application/json"
 }
 ACTIVITY_FILE = "activity_ids.txt"
+RESULTS_FILE = "emission_results.txt"
 
 def fetch_activity_ids(category):
     """Fetch all activity IDs and unit types from the API."""
@@ -79,7 +80,7 @@ def get_emission_estimate(activity_id, unit_type):
 
 def main():
     category = "Food/Beverages/Tobacco"
-    total_entries = 5  # Limit for testing
+    total_entries = 500  # Limit for testing
 
     # Check if we have stored activity IDs
     stored_activity_data = get_stored_activity_ids()
@@ -99,12 +100,14 @@ def main():
 
     emissions_results = {}
 
-    for entry in activity_data[:total_entries]:  # Limit to total_entries for testing
-        print(f"Processing: {entry}")
-        activity_id, unit_type = entry.split("|")
-        estimate = get_emission_estimate(activity_id, unit_type)
-        if estimate:
-            emissions_results[activity_id] = estimate
+    with open(RESULTS_FILE, "w") as results_file:
+        for entry in activity_data[:total_entries]:  # Limit to total_entries for testing
+            print(f"Processing: {entry}")
+            activity_id, unit_type = entry.split("|")
+            estimate = get_emission_estimate(activity_id, unit_type)
+            if estimate:
+                emissions_results[activity_id] = estimate
+            results_file.write(f"{activity_id}: {estimate}\n")
 
     pprint(emissions_results)
 
