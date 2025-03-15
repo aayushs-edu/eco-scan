@@ -55,7 +55,7 @@ def get_emission_estimate(activity_id, unit_type):
 
     # Choose correct parameters based on unit type
     if "Money" in unit_type:
-        parameters = {"money": 500, "money_unit": "usd"}
+        parameters = {"money": 10, "money_unit": "usd"}
     elif "Weight" in unit_type:
         parameters = {"weight": 10, "weight_unit": "kg"}  # Adjust weight as needed
     else:
