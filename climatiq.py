@@ -1,9 +1,12 @@
 import requests
 import os
 from pprint import pprint
+import dotenv
 
+# Load environment variables from .env file
+dotenv.load_dotenv()
 # Replace with your actual API key
-MY_API_KEY = "082NCJSV751C37E60Y3GHZ4BPW"
+MY_API_KEY = os.getenv("CLIMATIQ_API_KEY")
 
 BASE_URL = "https://api.climatiq.io"
 AUTH_HEADERS = {
