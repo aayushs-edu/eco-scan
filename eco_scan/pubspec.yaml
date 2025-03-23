@@ -32,6 +32,8 @@ dependencies:
     sdk: flutter
   camera: ^0.10.5+2
   google_mlkit_barcode_scanning: ^0.10.0
+  simple_barcode_scanner: ^0.2.0
+  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:

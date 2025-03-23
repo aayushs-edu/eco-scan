@@ -1,5 +1,7 @@
+import 'package:simple_barcode_scanner/simple_barcode_scanner.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 
 void main() async {
@@ -22,7 +24,8 @@ class EcoScanApp extends StatelessWidget {
     return MaterialApp(
       title: 'Barcode Scanner',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.green, // Use a green color for EcoScan theme
+        visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       home: BarcodeScannerScreen(camera: camera),
     );
@@ -95,36 +98,87 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
     }
   }
 
+  Color bgColor = Colors.black38;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: bgColor,
       appBar: AppBar(
-        title: const Text('Scan Barcode'),
+        title: Text(         'EcoScan',
+          style: GoogleFonts.cantoraOne(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.green),
+        ),
+        backgroundColor: bgColor,
+        centerTitle: true,
+        toolbarHeight: 100,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.settings, color: Colors.green),
+            onPressed: () {
+              // Handle settings button press
+            },
+          ),
+        ],
       ),
-      body: FutureBuilder<void>(
-        future: _initializeControllerFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done) {
-            return Stack(
-              children: [
-                CameraPreview(_controller),
-                Positioned(
-                  bottom: 20,
-                  left: 0,
-                  right: 0,
-                  child: Center(
+      body: SafeArea(
+        child: FutureBuilder<void>(
+          future: _initializeControllerFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.done) {
+              return Stack(
+                children: [
+                  // Camera preview covering most of the screen
+                  Positioned.fill(
+                    bottom: 140,
                     child: ElevatedButton(
-                      onPressed: _scanBarcode,
-                      child: const Text('Scan Barcode'),
+                      onPressed: () async {
+                        SimpleBarcodeScanner.streamBarcode(
+                            context,
+                            barcodeAppBar: const BarcodeAppBar(
+                              appBarTitle: 'Test',
+                              centerTitle: false,
+                              enableBackButton: true,
+                              backButtonIcon: Icon(Icons.arrow_back_ios),
+                            ),
+                            isShowFlashIcon: true,
+                            delayMillis: 2000,
+                        ).listen((event) {
+                          print("Stream Barcode Result: $event");
+                        });
+                      },
+                      child: const Text('Open Scanner'),
                     ),
                   ),
-                ),
-              ],
-            );
-          } else {
-            return const Center(child: CircularProgressIndicator());
-          }
-        },
+                  // Overlay for the button
+                  Positioned(
+                    bottom: 20,
+                    left: 0,
+                    right: 0,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: ElevatedButton(
+                        onPressed: _scanBarcode,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          backgroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Scan Barcode',
+                          style: TextStyle(fontSize: 18, color: Colors.black),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            } else {
+              return const Center(child: CircularProgressIndicator());
+            }
+          },
+        ),
       ),
     );
   }
