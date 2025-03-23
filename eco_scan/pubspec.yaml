@@ -30,9 +30,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  http: ^0.13.4
-  universal_html: ^2.2.0  # For web DOM access
-  js: ^0.6.5              # JavaScript interop
+  camera: ^0.10.5+2
+  google_mlkit_barcode_scanning: ^0.10.0
+  simple_barcode_scanner: ^0.2.0
+  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:
