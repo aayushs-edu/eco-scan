@@ -1,130 +1,153 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:camera/camera.dart';
-import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
+import 'package:ai_barcode_scanner/ai_barcode_scanner.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // Get the list of available cameras
-  final cameras = await availableCameras();
-  final firstCamera = cameras.first;
-
-  runApp(EcoScanApp(camera: firstCamera));
+void main() {
+  runApp(const EcoScanApp());
 }
 
 class EcoScanApp extends StatelessWidget {
-  final CameraDescription camera;
-
-  const EcoScanApp({super.key, required this.camera});
+  const EcoScanApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Barcode Scanner',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.green,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: BarcodeScannerScreen(camera: camera),
+      home: const BarcodeScannerScreen(),
     );
   }
 }
 
 class BarcodeScannerScreen extends StatefulWidget {
-  final CameraDescription camera;
-
-  const BarcodeScannerScreen({super.key, required this.camera});
+  const BarcodeScannerScreen({super.key});
 
   @override
   _BarcodeScannerScreenState createState() => _BarcodeScannerScreenState();
 }
 
 class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
-  late CameraController _controller;
-  late Future<void> _initializeControllerFuture;
-  final BarcodeScanner _barcodeScanner = BarcodeScanner();
+  String _barcodeResult = "No barcode scanned yet";
+  final Color bgColor = Colors.black38;
 
-  bool isProcessing = false;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _controller = CameraController(
-      widget.camera,
-      ResolutionPreset.medium,
-    );
-
-    _initializeControllerFuture = _controller.initialize();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _barcodeScanner.close();
-    super.dispose();
-  }
-
-  void _processBarcode(InputImage inputImage) async {
-    if (isProcessing) return;
-    isProcessing = true;
-
-    final barcodes = await _barcodeScanner.processImage(inputImage);
-
-    for (Barcode barcode in barcodes) {
-      final String barcodeValue = barcode.rawValue ?? 'No value found';
-      print('Barcode found! Value: $barcodeValue');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Barcode: $barcodeValue')),
-      );
-    }
-
-    isProcessing = false;
-  }
-
-  Future<void> _scanBarcode() async {
-    if (!_controller.value.isInitialized) {
-      return;
-    }
-
+  /// This function calls an external API to fetch the brand name from the barcode.
+  /// In this example, we use UPCItemDB’s trial endpoint.
+  Future<String> fetchBrandName(String barcode) async {
+    final url = 'https://api.upcitemdb.com/prod/trial/lookup?upc=$barcode';
     try {
-      final image = await _controller.takePicture();
-      final inputImage = InputImage.fromFilePath(image.path);
-      _processBarcode(inputImage);
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['items'] != null && data['items'].isNotEmpty) {
+          final brand = data['items'][0]['brand'];
+          return (brand != null && (brand as String).isNotEmpty)
+              ? brand
+              : 'Unknown brand';
+        }
+      }
+      return 'Unknown brand';
     } catch (e) {
-      print('Error scanning barcode: $e');
+      debugPrint("Error fetching brand: $e");
+      return 'Unknown brand';
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: bgColor,
       appBar: AppBar(
-        title: const Text('Scan Barcode'),
+        title: Text(
+          'EcoScan',
+          style: GoogleFonts.cantoraOne(
+            fontSize: 40,
+            fontWeight: FontWeight.bold,
+            color: Colors.green,
+          ),
+        ),
+        backgroundColor: bgColor,
+        centerTitle: true,
+        toolbarHeight: 100,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings, color: Colors.green),
+            onPressed: () {
+              // Handle settings button press
+            },
+          ),
+        ],
       ),
-      body: FutureBuilder<void>(
-        future: _initializeControllerFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done) {
-            return Stack(
-              children: [
-                CameraPreview(_controller),
-                Positioned(
-                  bottom: 20,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: ElevatedButton(
-                      onPressed: _scanBarcode,
-                      child: const Text('Scan Barcode'),
-                    ),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            // AiBarcodeScanner widget provided by ai_barcode_scanner package.
+            AiBarcodeScanner(
+              onDispose: () {
+                debugPrint("Barcode scanner disposed!");
+              },
+              hideGalleryButton: false,
+              controller: MobileScannerController(
+                detectionSpeed: DetectionSpeed.noDuplicates,
+              ),
+              onDetect: (BarcodeCapture capture) async {
+                final String? scannedValue = capture.barcodes.first.rawValue;
+                if (scannedValue != null) {
+                  debugPrint("Barcode scanned: $scannedValue");
+                  // Fetch the brand name for the scanned barcode.
+                  final brand = await fetchBrandName(scannedValue);
+                  setState(() {
+                    _barcodeResult =
+                        "Barcode: $scannedValue\nBrand: $brand";
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Brand: $brand')),
+                  );
+                }
+              },
+              // You can modify or remove this validator as needed.
+              validator: (value) {
+                if (value.barcodes.isEmpty) {
+                  return false;
+                }
+                // For example, only accept barcodes containing 'flutter.dev'
+                if (!(value.barcodes.first.rawValue
+                        ?.contains('flutter.dev') ??
+                    false)) {
+                  return false;
+                }
+                return true;
+              },
+            ),
+            // Overlay to display the scanned barcode result.
+            Positioned(
+              bottom: 20,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 15, horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    _barcodeResult,
+                    style:
+                        const TextStyle(fontSize: 18, color: Colors.black),
+                    textAlign: TextAlign.center,
                   ),
                 ),
-              ],
-            );
-          } else {
-            return const Center(child: CircularProgressIndicator());
-          }
-        },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
