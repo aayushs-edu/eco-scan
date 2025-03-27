@@ -28,6 +28,7 @@ class _BarcodeInfoPageState extends State<BarcodeInfoPage> {
     );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
+      print(data);
       if (data['items'] != null && data['items'].isNotEmpty) {
         return BarcodeInfo.fromMap(data['items'][0]);
       } else {
@@ -37,6 +38,30 @@ class _BarcodeInfoPageState extends State<BarcodeInfoPage> {
       throw Exception('Failed to load barcode info');
     }
   }
+
+  // Future<String> fetchBrandName(String barcode) async {
+  //   final response = await http.get(
+  //     Uri.parse('https://api.upcitemdb.com/prod/trial/lookup?upc=$barcode'),
+  //     headers: {"Access-Control-Allow-Origin": "*"},
+  //   );
+  //   if (response.statusCode == 200) {
+  //     final data = jsonDecode(response.body);
+  //     if (data['total'] > 0) {
+  //       if (data['items'] != null && data['items'].isNotEmpty) {
+  //         final productResponse = ProductResponse.fromMap(data);
+  //         return productResponse.items.first.brand;
+  //       } else {
+  //         throw Exception('No items found for this barcode');
+  //       }
+  //     } else {
+  //       throw Exception('No items found for this barcode');
+  //     }
+  //   } else {
+  //     print(response.statusCode);
+  //     print(response.body);
+  //     throw Exception('Failed to load brand name');
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -48,12 +73,28 @@ class _BarcodeInfoPageState extends State<BarcodeInfoPage> {
         future: _barcodeInfo,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
+            // Show a loading indicator while the API call is in progress
             return Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            // Display an error message if the API call fails
+            return Center(
+              child: Text(
+                'Error: ${snapshot.error}',
+                style: TextStyle(fontSize: 18, color: Colors.red),
+                textAlign: TextAlign.center,
+              ),
+            );
           } else if (!snapshot.hasData) {
-            return Center(child: Text('No data found'));
+            // Handle the case where no data is returned
+            return Center(
+              child: Text(
+                'No data found for this barcode.',
+                style: TextStyle(fontSize: 18),
+                textAlign: TextAlign.center,
+              ),
+            );
           } else {
+            // Display the barcode information when the API call succeeds
             final info = snapshot.data!;
             return ListView(
               padding: EdgeInsets.all(16.0),

@@ -103,10 +103,16 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
                 detectionSpeed: DetectionSpeed.noDuplicates,
               ),
               onDetect: (BarcodeCapture capture) async {
-                final String? scannedValue = capture.barcodes.first.rawValue;
-                if (scannedValue != null) {
-                  debugPrint("Barcode scanned: $scannedValue");
-                  _navigateToBarcodeInfoPage(scannedValue);
+                if (capture.barcodes.isNotEmpty) {
+                  final String? scannedValue = capture.barcodes.first.rawValue;
+                  if (scannedValue != null) {
+                    debugPrint("Barcode scanned: $scannedValue");
+                    _navigateToBarcodeInfoPage(scannedValue);
+                  } else {
+                    debugPrint("Scanned value is null.");
+                  }
+                } else {
+                  debugPrint("No barcodes detected.");
                 }
               },
               // You can modify or remove this validator as needed.

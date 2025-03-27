@@ -69,24 +69,28 @@ class BarcodeInfo {
   });
 
   factory BarcodeInfo.fromMap(Map<String, dynamic> json) => BarcodeInfo(
-        ean: json["ean"],
-        title: json["title"],
-        description: json["description"],
-        upc: json["upc"],
-        brand: json["brand"],
-        model: json["model"],
-        color: json["color"],
-        size: json["size"],
-        dimension: json["dimension"],
-        weight: json["weight"],
-        category: json["category"],
-        currency: json["currency"],
+        ean: json["ean"] ?? "",
+        title: json["title"] ?? "",
+        description: json["description"] ?? "",
+        upc: json["upc"] ?? "",
+        brand: json["brand"] ?? "",
+        model: json["model"] ?? "",
+        color: json["color"] ?? "",
+        size: json["size"] ?? "",
+        dimension: json["dimension"] ?? "",
+        weight: json["weight"] ?? "",
+        category: json["category"] ?? "",
+        currency: json["currency"] ?? "",
         lowestRecordedPrice: json["lowest_recorded_price"]?.toDouble(),
         highestRecordedPrice: json["highest_recorded_price"]?.toDouble(),
-        images: List<String>.from(json["images"].map((x) => x)),
-        offers: List<Offer>.from(json["offers"].map((x) => Offer.fromMap(x))),
-        asin: json["asin"],
-        elid: json["elid"],
+        images: json["images"] != null
+            ? List<String>.from(json["images"].map((x) => x))
+            : [], // Default to an empty list
+        offers: json["offers"] != null
+            ? List<Offer>.from(json["offers"].map((x) => Offer.fromMap(x)))
+            : [], // Default to an empty list
+        asin: json["asin"] ?? "",
+        elid: json["elid"] ?? "",
       );
 }
 
@@ -119,18 +123,18 @@ class Offer {
   });
 
   factory Offer.fromMap(Map<String, dynamic> json) => Offer(
-        merchant: json["merchant"],
-        domain: json["domain"],
-        title: json["title"],
-        currency: json["currency"],
+        merchant: json["merchant"] ?? "",
+        domain: json["domain"] ?? "",
+        title: json["title"] ?? "",
+        currency: json["currency"] ?? "",
         listPrice: json["list_price"] == "" || json["list_price"] == null
             ? null
             : json["list_price"].toDouble(),
-        price: json["price"].toDouble(),
-        shipping: json["shipping"],
-        condition: json["condition"],
-        availability: json["availability"],
-        link: json["link"],
-        updatedT: json["updated_t"],
+        price: json["price"]?.toDouble() ?? 0.0, // Default to 0.0 if null
+        shipping: json["shipping"] ?? "",
+        condition: json["condition"] ?? "",
+        availability: json["availability"] ?? "",
+        link: json["link"] ?? "",
+        updatedT: json["updated_t"] ?? 0,
       );
 }
