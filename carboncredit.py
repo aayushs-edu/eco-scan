@@ -10,10 +10,12 @@ def filter_agriculture_rows(file_path, output_path):
     
     # Get the third column name
     third_column = df.columns[2]
+    fifth_column = df.columns[4]
     
     # Filter rows where the third column is 'Agriculture'
-    filtered_df = df[df[third_column] == 'Agriculture']
+    filtered_df = df[(df[third_column] == 'Agriculture') & (df[fifth_column] != 0)]
     
+
     # Save the filtered data to a new Excel file
     filtered_df.to_excel(output_path, index=False)
     
