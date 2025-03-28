@@ -1,9 +1,10 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ai_barcode_scanner/ai_barcode_scanner.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'barcodeInfo.dart';
+import 'barcode_info_page.dart'; // Add this import
 
 void main() {
   runApp(const EcoScanApp());
@@ -35,26 +36,32 @@ class BarcodeScannerScreen extends StatefulWidget {
 class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
   String _barcodeResult = "No barcode scanned yet";
   final Color bgColor = Colors.black38;
+  final TextEditingController _gtinController = TextEditingController();
+
+  void _navigateToBarcodeInfoPage(String barcode) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BarcodeInfoPage(barcode: barcode),
+      ),
+    );
+  }
 
   /// This function calls an external API to fetch the brand name from the barcode.
   /// In this example, we use UPCItemDB’s trial endpoint.
   Future<String> fetchBrandName(String barcode) async {
-    final url = 'https://api.upcitemdb.com/prod/trial/lookup?upc=$barcode';
-    try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['items'] != null && data['items'].isNotEmpty) {
-          final brand = data['items'][0]['brand'];
-          return (brand != null && (brand as String).isNotEmpty)
-              ? brand
-              : 'Unknown brand';
-        }
-      }
-      return 'Unknown brand';
-    } catch (e) {
-      debugPrint("Error fetching brand: $e");
-      return 'Unknown brand';
+    final response = await http.get(
+      Uri.parse('https://api.upcitemdb.com/prod/trial/lookup?upc=$barcode'),
+      headers: {"Access-Control-Allow-Origin": "*"},
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final productResponse = ProductResponse.fromMap(data);
+      return productResponse.items.first.brand;
+    } else {
+      print(response.statusCode);
+      print(response.body);
+      throw Exception('Failed to load brand name');
     }
   }
 
@@ -96,18 +103,16 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
                 detectionSpeed: DetectionSpeed.noDuplicates,
               ),
               onDetect: (BarcodeCapture capture) async {
-                final String? scannedValue = capture.barcodes.first.rawValue;
-                if (scannedValue != null) {
-                  debugPrint("Barcode scanned: $scannedValue");
-                  // Fetch the brand name for the scanned barcode.
-                  final brand = await fetchBrandName(scannedValue);
-                  setState(() {
-                    _barcodeResult =
-                        "Barcode: $scannedValue\nBrand: $brand";
-                  });
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Brand: $brand')),
-                  );
+                if (capture.barcodes.isNotEmpty) {
+                  final String? scannedValue = capture.barcodes.first.rawValue;
+                  if (scannedValue != null) {
+                    debugPrint("Barcode scanned: $scannedValue");
+                    _navigateToBarcodeInfoPage(scannedValue);
+                  } else {
+                    debugPrint("Scanned value is null.");
+                  }
+                } else {
+                  debugPrint("No barcodes detected.");
                 }
               },
               // You can modify or remove this validator as needed.
@@ -130,19 +135,39 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
               left: 0,
               right: 0,
               child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      vertical: 15, horizontal: 20),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.8),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    _barcodeResult,
-                    style:
-                        const TextStyle(fontSize: 18, color: Colors.black),
-                    textAlign: TextAlign.center,
-                  ),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 15, horizontal: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.8),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        _barcodeResult,
+                        style:
+                            const TextStyle(fontSize: 18, color: Colors.black),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: TextField(
+                        controller: _gtinController,
+                        decoration: InputDecoration(
+                          hintText: 'Enter GTIN',
+                          border: OutlineInputBorder(),
+                        ),
+                        onSubmitted: (value) async {
+                          if (value.isNotEmpty) {
+                            _navigateToBarcodeInfoPage(value);
+                          }
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

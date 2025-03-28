@@ -33,6 +33,7 @@ dependencies:
   camera: ^0.10.5+2
   google_fonts: ^6.2.1
   ai_barcode_scanner: ^6.0.1
+  http: 
 
 dev_dependencies:
   flutter_test:
